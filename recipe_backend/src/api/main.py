@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 from src.core.config import get_settings
 from src.db.database import init_db
@@ -25,14 +26,14 @@ app = FastAPI(
 
 settings = get_settings()
 
-# Configure CORS using settings; ensure localhost:3000 is allowed
+# Configure CORS using settings; ensure localhost:3000 and preview URL are allowed.
 origins = set(settings.CORS_ORIGINS or [])
 origins.update({"http://localhost:3000", "http://127.0.0.1:3000"})
-# Include preview URL hint if provided via env
-preview_origin = None
-for o in list(origins):
-    if o:
-        preview_origin = o  # no-op, placeholder to keep flexible
+
+# Optionally include preview URL from environment (for ephemeral deployments)
+preview_url = os.getenv("PREVIEW_URL")
+if preview_url:
+    origins.add(preview_url)
 
 app.add_middleware(
     CORSMiddleware,
@@ -49,6 +50,7 @@ def on_startup():
     init_db()
 
 
+# PUBLIC_INTERFACE
 @app.get("/", summary="Health Check", tags=["Health"])
 def health_check():
     """Return a simple health check message."""
